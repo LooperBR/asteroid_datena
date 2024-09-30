@@ -1,5 +1,4 @@
-# fazer um sistema de carregar o tiro que aumenta o tamanho do tiro e a quantidade de vida que ele tem
-#png andre guedes cartoon roubar imagens
+# fazer um sistema de super que lança uma supernova de cadeiras depois de um certo numero de kills
 
 import os, sys
 import getopt
@@ -19,7 +18,9 @@ white = (255,255,255)
 red = (255,0,0)
 
 nave_img = pygame.image.load('asteroids_fake/imagens/nave.png')
+super_nave_img = pygame.image.load('asteroids_fake/imagens/superNave.png')
 bala_img = pygame.image.load('asteroids_fake/imagens/bala.png')
+super_bala_img = pygame.image.load('asteroids_fake/imagens/superBala.png')
 asteroid_img = pygame.image.load('asteroids_fake/imagens/asteroid.png')
 
 class Ship:
@@ -40,6 +41,10 @@ class Ship:
         #nave_img = pygame.transform.scale(nave_img, (20, 20))
         ship.blit(pygame.transform.scale(nave_img, (self.sizeX, self.sizeY)),(0,0))
         self.image = ship
+
+        ship2 = pygame.Surface( (self.sizeX,self.sizeY), pygame.SRCALPHA, 32 ).convert_alpha()
+        ship2.blit(pygame.transform.scale(super_nave_img, (self.sizeX, self.sizeY)),(0,0))
+        self.image2 = ship2
 
     def shoot(self):
         pass
@@ -74,12 +79,15 @@ class Ship:
             self.y=resolution_y
         pass
 
-    def draw( self, screen ):
-        new_image = pygame.transform.rotate(self.image, self.direction)
+    def draw( self, screen, charge):
+        if charge>0.8 and charge<1.2:
+            new_image = pygame.transform.rotate(self.image2, self.direction)
+        else:
+            new_image = pygame.transform.rotate(self.image, self.direction)
 
         new_rect = new_image.get_rect(center = self.image.get_rect(topleft = (self.x,self.y)).center)
-        
-        screen.blit( new_image, new_rect )
+        #print('new_rect ',new_rect)
+        screen.blit( new_image, (new_rect[0]-(self.sizeX/2),new_rect[1]-(self.sizeY/2)) )
 
     def printAll(self):
         print("x: ",self.x)
@@ -117,20 +125,37 @@ class Background:
 # Background
 
 class Projectile:
-    def __init__(self,direction,x,y):
-        self.speed = 300
+    def __init__(self,direction,x,y,charge,superNova=False):
+        self.perfect = False
+        if charge>0.8 and charge < 1.2:
+            charge = 1
+            self.perfect = True
+        charge +=1
+        if charge<1:
+            charge = 1
+        if charge>2:
+            charge = 2
+        self.speed = 300 * charge
         self.direction = direction
         self.rotr = math.radians(self.direction)
         self.x = x
         self.y = y
         self.ysp = math.cos(self.rotr)
         self.xsp = math.sin(self.rotr)
-        self.sizeX = 60
-        self.sizeY = 60
+        self.sizeX = 60 * charge
+        self.sizeY = 60 * charge
+
+        self.superNova = superNova
+
+        self.health = int(1*charge)
         projectile = pygame.Surface( (self.sizeX,self.sizeY), pygame.SRCALPHA, 32 ).convert_alpha()
         #projectile.fill( ( 0, 0, 255 ) )
         #nave_img = pygame.transform.scale(nave_img, (20, 20))
-        projectile.blit(pygame.transform.scale(bala_img, (self.sizeX,self.sizeY)),(0,0))
+        if self.perfect:
+            self.health = 10
+            projectile.blit(pygame.transform.scale(super_bala_img, (self.sizeX,self.sizeY)),(0,0))
+        else:
+            projectile.blit(pygame.transform.scale(bala_img, (self.sizeX,self.sizeY)),(0,0))
         self.image = projectile
 
     def move(self,delta):
@@ -143,7 +168,7 @@ class Projectile:
 
         new_rect = new_image.get_rect(center = self.image.get_rect(topleft = (self.x,self.y)).center)
         
-        screen.blit( new_image, new_rect )
+        screen.blit( new_image, (new_rect[0]-(self.sizeX/2),new_rect[1]-(self.sizeY/2)) )
 
 class Asteroid:
     def __init__(self):
@@ -201,7 +226,7 @@ class Asteroid:
 
         new_rect = new_image.get_rect(center = self.image.get_rect(topleft = (self.x,self.y)).center)
         
-        screen.blit( new_image, new_rect )
+        screen.blit( new_image, (new_rect[0]-(self.sizeX/2),new_rect[1]-(self.sizeY/2)) )
 
 class Text:
     def __init__(self,text,x,y,size):
@@ -238,6 +263,11 @@ class Game:
     score = 0
     running = False
     size = None
+    charge = 0
+    launchShot = False
+    superMaxCharge = 20
+    superCharge = 0
+    launchSuper = False
     
     def __init__( self, size, fullscreen ):
         """
@@ -269,6 +299,8 @@ class Game:
         self.duration=0
         self.timer=0
         self.score=0
+        self.charge=0
+        self.superCharge=0
         self.running=True
 
 
@@ -315,6 +347,9 @@ class Game:
                     self.a = False
                 elif k == K_d:
                     self.d = False
+                elif k == K_SPACE:
+                    self.shoot = False
+                    self.launchShot = True
 
     # handle_events()
 
@@ -331,12 +366,40 @@ class Game:
             self.ship.rotate(-1,delta)
         if self.a and not self.d:
             self.ship.rotate(1,delta)
+
         if self.shoot:
+            self.charge +=delta
+
+        if self.launchShot:
             self.ship.shoot()
             if(len(self.bullets)<5):
-                bullet = Projectile(self.ship.direction,self.ship.x,self.ship.y)
+                bullet = Projectile(self.ship.direction,self.ship.x,self.ship.y,self.charge)
                 self.bullets.append(bullet)
-                print('shoot')
+                print('shoot',self.charge)
+                self.charge = 0
+        
+        if self.launchSuper:
+            self.ship.shoot()
+            bullet1 = Projectile(0,self.ship.x,self.ship.y,1,True)
+            bullet2 = Projectile(45,self.ship.x,self.ship.y,1,True)
+            bullet3 = Projectile(90,self.ship.x,self.ship.y,1,True)
+            bullet4 = Projectile(135,self.ship.x,self.ship.y,1,True)
+            bullet5 = Projectile(180,self.ship.x,self.ship.y,1,True)
+            bullet6 = Projectile(225,self.ship.x,self.ship.y,1,True)
+            bullet7 = Projectile(270,self.ship.x,self.ship.y,1,True)
+            bullet8 = Projectile(315,self.ship.x,self.ship.y,1,True)
+            self.bullets.append(bullet1)
+            self.bullets.append(bullet2)
+            self.bullets.append(bullet3)
+            self.bullets.append(bullet4)
+            self.bullets.append(bullet5)
+            self.bullets.append(bullet6)
+            self.bullets.append(bullet7)
+            self.bullets.append(bullet8)
+            self.launchSuper = 0
+            self.superCharge = 0
+            print('super')
+    
         i=1
         for bullet in self.bullets[:]:
             #print('bullet',i)
@@ -359,8 +422,13 @@ class Game:
         for bullet in self.bullets[:]:    
             for asteroid in self.asteroids[:]:
                     if(self.collide(bullet.x,bullet.y,bullet.sizeX,bullet.sizeY,asteroid.x,asteroid.y,asteroid.sizeX,asteroid.sizeY)):
-                        bulletsRemove.append(bullet)
-                        asteroidsHit.append(asteroid)
+                        bullet.health-=1
+                        if(bullet.health<=0):
+                            bulletsRemove.append(bullet)
+                        if(not bullet.superNova):
+                            asteroidsHit.append(asteroid)
+
+                        
                         asteroidsRemove.append(asteroid)
         
         bulletsRemove = list(dict.fromkeys(bulletsRemove))
@@ -368,7 +436,12 @@ class Game:
         asteroidsHit = list(dict.fromkeys(asteroidsHit))
 
         for asteroid in asteroidsHit[:]:
+            self.superCharge+=1
             self.score+=100
+
+        if self.superCharge>=self.superMaxCharge:
+            self.superCharge = 0
+            self.launchSuper = True
 
         for bullet in bulletsRemove[:]: 
             self.bullets.remove(bullet)
@@ -400,7 +473,7 @@ class Game:
         for asteroid in self.asteroids:
             asteroid.draw(self.screen)
 
-        self.ship.draw(self.screen)
+        self.ship.draw(self.screen,self.charge)
 
         self.timeLabel = Text('Tempo:'+str(self.duration),200,100,30)
         self.scoreLabel = Text('score:'+str(self.score),1000,100,30)
@@ -417,7 +490,7 @@ class Game:
         if self.timer <=0:
             asteroid = Asteroid()
             self.asteroids.append(asteroid)
-            print('asteroid')
+            #print('asteroid')
 
             if self.duration <= 2000:
                 self.timer =500
@@ -539,9 +612,9 @@ class Game:
             # ao fim do desenho temos que trocar o front buffer e o back buffer
             pygame.display.flip()
 
-            self.shoot = False
+            self.launchShot = False
 
-            print(self.timer)
+            #print(self.timer)
 
             #print(self.ship.x,self.ship.y,self.ship.sizeX,self.ship.sizeY)
                   
