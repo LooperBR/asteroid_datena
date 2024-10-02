@@ -10,8 +10,8 @@ import random
 
 images_dir = os.path.join( "..", "imagens" )
 
-resolution_x = 1920
-resolution_y = 1080
+resolution_x = 1600
+resolution_y = 900
 
 black = (0,0,0)
 white = (255,255,255)
@@ -86,6 +86,8 @@ class Ship:
             new_image = pygame.transform.rotate(self.image, self.direction)
 
         new_rect = new_image.get_rect(center = self.image.get_rect(topleft = (self.x,self.y)).center)
+
+        #pygame.draw.rect(new_image, "black", ((new_image.get_width()-self.sizeX)/2, (new_image.get_height()-self.sizeY)/2, self.sizeX, self.sizeY), 1)
         #print('new_rect ',new_rect)
         screen.blit( new_image, (new_rect[0]-(self.sizeX/2),new_rect[1]-(self.sizeY/2)) )
 
@@ -168,6 +170,8 @@ class Projectile:
 
         new_rect = new_image.get_rect(center = self.image.get_rect(topleft = (self.x,self.y)).center)
         
+        #pygame.draw.rect(new_image, "black", ((new_image.get_width()-self.sizeX)/2, (new_image.get_height()-self.sizeY)/2, self.sizeX, self.sizeY), 1)
+
         screen.blit( new_image, (new_rect[0]-(self.sizeX/2),new_rect[1]-(self.sizeY/2)) )
 
 class Asteroid:
@@ -226,6 +230,8 @@ class Asteroid:
 
         new_rect = new_image.get_rect(center = self.image.get_rect(topleft = (self.x,self.y)).center)
         
+        #pygame.draw.rect(new_image, "black", ((new_image.get_width()-self.sizeX)/2, (new_image.get_height()-self.sizeY)/2, self.sizeX, self.sizeY), 1)
+
         screen.blit( new_image, (new_rect[0]-(self.sizeX/2),new_rect[1]-(self.sizeY/2)) )
 
 class Text:
@@ -268,7 +274,8 @@ class Game:
     superMaxCharge = 20
     superCharge = 0
     launchSuper = False
-    
+    lives = 3
+
     def __init__( self, size, fullscreen ):
         """
         Esta é a função que inicializa o pygame, define a resolução da tela,
@@ -294,13 +301,16 @@ class Game:
     def game_start(self,size):
         self.ship = Ship(size[0],size[1])
         self.startLabel = Text('Aperte Enter para iniciar',resolution_x/2,resolution_y/2,30)
-        self.timeLabel = Text('teste1',200,100,30)
-        self.scoreLabel = Text('teste2',1000,100,30)
+        self.timeLabel = Text('teste1',0,0,30)
+        self.scoreLabel = Text('teste2',800,0,30)
+        self.livesLabel = Text('3 vidas',1300,0,30)
+        self.superLabel = Text('0/20',800,800,30)
         self.duration=0
         self.timer=0
         self.score=0
         self.charge=0
         self.superCharge=0
+        self.lives = 3
         self.running=True
 
 
@@ -335,8 +345,10 @@ class Game:
                     self.shoot = True
                 elif k == K_KP_ENTER:
                     if self.debug:
+                        print("no Debug")
                         self.debug = False
                     else:
+                        print("Debug")
                         self.debug = True
             elif t == KEYUP:
                 if k == K_w:
@@ -350,6 +362,13 @@ class Game:
                 elif k == K_SPACE:
                     self.shoot = False
                     self.launchShot = True
+            elif t == MOUSEBUTTONDOWN:
+                self.shoot = True
+            elif t == MOUSEBUTTONUP:
+                self.shoot = False
+                self.launchShot = True
+
+
 
     # handle_events()
 
@@ -417,6 +436,7 @@ class Game:
         
         bulletsRemove = []
         asteroidsHit = []
+        asteroidsHitNormal = []
         asteroidsRemove = []
 
         for bullet in self.bullets[:]:    
@@ -426,18 +446,22 @@ class Game:
                         if(bullet.health<=0):
                             bulletsRemove.append(bullet)
                         if(not bullet.superNova):
-                            asteroidsHit.append(asteroid)
-
+                            asteroidsHitNormal.append(asteroid)
+                        asteroidsHit.append(asteroid)
                         
                         asteroidsRemove.append(asteroid)
         
         bulletsRemove = list(dict.fromkeys(bulletsRemove))
         asteroidsRemove = list(dict.fromkeys(asteroidsRemove))
         asteroidsHit = list(dict.fromkeys(asteroidsHit))
+        asteroidsHitNormal = list(dict.fromkeys(asteroidsHitNormal))
+
+        for asteroid in asteroidsHitNormal[:]:
+            self.superCharge+=1
+            self.score+=50
 
         for asteroid in asteroidsHit[:]:
-            self.superCharge+=1
-            self.score+=100
+            self.score+=50
 
         if self.superCharge>=self.superMaxCharge:
             self.superCharge = 0
@@ -453,7 +477,9 @@ class Game:
             #print(self.ship.x,self.ship.y,self.ship.sizeX,self.ship.sizeY,asteroid.x,asteroid.y,asteroid.sizeX,asteroid.sizeY)
             if(self.collide(self.ship.x,self.ship.y,self.ship.sizeX,self.ship.sizeY,asteroid.x,asteroid.y,asteroid.sizeX,asteroid.sizeY)):
                 self.asteroids.remove(asteroid)
-                self.running = False
+                self.lives -= 1
+                if(self.lives<=0):
+                    self.running = False
         
         if not self.running:
             for asteroid in self.asteroids[:]: 
@@ -475,12 +501,16 @@ class Game:
 
         self.ship.draw(self.screen,self.charge)
 
-        self.timeLabel = Text('Tempo:'+str(self.duration),200,100,30)
-        self.scoreLabel = Text('score:'+str(self.score),1000,100,30)
+        self.timeLabel = Text('Tempo:'+str(self.duration),0,0,30)
+        self.scoreLabel = Text('score:'+str(self.score),800,0,30)
+        self.livesLabel = Text(str(self.lives)+' vidas',1300,0,30)
+        self.superLabel = Text(str(self.superCharge)+'/'+str(self.superMaxCharge),800,800,30)
         self.startLabel = Text('Aperte P para reiniciar',resolution_x/2-100,resolution_y/2-100,30)
 
         self.scoreLabel.draw(self.screen)
         self.timeLabel.draw(self.screen)
+        self.livesLabel.draw(self.screen)
+        self.superLabel.draw(self.screen)
 
         if not self.running:
             self.startLabel.draw(self.screen)
@@ -511,7 +541,7 @@ class Game:
         newX1=x1+xsize1/2
         newY1=y1+ysize1/2
         if(
-            newX1  < x2 + xsize2 / 2 and x1> x2 - xsize2 / 2 and 
+            newX1  < x2 + xsize2 / 2 and newX1> x2 - xsize2 / 2 and 
             newY1 < y2 + ysize2 / 2 and newY1 > y2 - xsize2 / 2
         ):
             return True
@@ -519,7 +549,7 @@ class Game:
         newX1=x1
         newY1=y1+ysize1/2
         if(
-            newX1  < x2 + xsize2 / 2 and x1> x2 - xsize2 / 2 and 
+            newX1  < x2 + xsize2 / 2 and newX1> x2 - xsize2 / 2 and 
             newY1 < y2 + ysize2 / 2 and newY1 > y2 - xsize2 / 2
         ):
             return True
@@ -527,7 +557,7 @@ class Game:
         newX1=x1-xsize1/2
         newY1=y1+ysize1/2
         if(
-            newX1  < x2 + xsize2 / 2 and x1> x2 - xsize2 / 2 and 
+            newX1  < x2 + xsize2 / 2 and newX1> x2 - xsize2 / 2 and 
             newY1 < y2 + ysize2 / 2 and newY1 > y2 - xsize2 / 2
         ):
             return True
@@ -535,7 +565,7 @@ class Game:
         newX1=x1+xsize1/2
         newY1=y1
         if(
-            newX1  < x2 + xsize2 / 2 and x1> x2 - xsize2 / 2 and 
+            newX1  < x2 + xsize2 / 2 and newX1> x2 - xsize2 / 2 and 
             newY1 < y2 + ysize2 / 2 and newY1 > y2 - xsize2 / 2
         ):
             return True
@@ -543,7 +573,7 @@ class Game:
         newX1=x1-xsize1/2
         newY1=y1
         if(
-            newX1  < x2 + xsize2 / 2 and x1> x2 - xsize2 / 2 and 
+            newX1  < x2 + xsize2 / 2 and newX1> x2 - xsize2 / 2 and 
             newY1 < y2 + ysize2 / 2 and newY1 > y2 - xsize2 / 2
         ):
             return True
@@ -551,7 +581,7 @@ class Game:
         newX1=x1+xsize1/2
         newY1=y1-ysize1/2
         if(
-            newX1  < x2 + xsize2 / 2 and x1> x2 - xsize2 / 2 and 
+            newX1  < x2 + xsize2 / 2 and newX1> x2 - xsize2 / 2 and 
             newY1 < y2 + ysize2 / 2 and newY1 > y2 - xsize2 / 2
         ):
             return True
@@ -559,7 +589,7 @@ class Game:
         newX1=x1
         newY1=y1-ysize1/2
         if(
-            newX1  < x2 + xsize2 / 2 and x1> x2 - xsize2 / 2 and 
+            newX1  < x2 + xsize2 / 2 and newX1> x2 - xsize2 / 2 and 
             newY1 < y2 + ysize2 / 2 and newY1 > y2 - xsize2 / 2
         ):
             return True
@@ -567,7 +597,7 @@ class Game:
         newX1=x1-xsize1/2
         newY1=y1-ysize1/2
         if(
-            newX1  < x2 + xsize2 / 2 and x1> x2 - xsize2 / 2 and 
+            newX1  < x2 + xsize2 / 2 and newX1> x2 - xsize2 / 2 and 
             newY1 < y2 + ysize2 / 2 and newY1 > y2 - xsize2 / 2
         ):
             return True
