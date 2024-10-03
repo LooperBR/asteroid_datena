@@ -1,4 +1,4 @@
-# fazer um sistema de super que lança uma supernova de cadeiras depois de um certo numero de kills
+# nivel dois que é um marçal gigante na direita da tela
 
 import os, sys
 import getopt
@@ -175,50 +175,73 @@ class Projectile:
         screen.blit( new_image, (new_rect[0]-(self.sizeX/2),new_rect[1]-(self.sizeY/2)) )
 
 class Asteroid:
-    def __init__(self):
-        self.speed = random.randint(80, 200)
+    def __init__(self,x=-1,y=-1,direction=0,boss=False):
+        self.boss=boss
         
+        if not boss:
+            self.health = 1
+            self.speed = random.randint(80, 200)
+            if(x==-1 and y==-1):
+                if(random.randint(0,1)==0):
+                    if(random.randint(0,1)==0):
+                        self.x = 0
+                        self.direction = random.randint(210, 330)
+                        self.rotr = math.radians(self.direction)
+                    else:
+                        self.x = resolution_x
+                        self.direction = random.randint(30, 150)
+                        self.rotr = math.radians(self.direction)
+                    
+                    self.y = random.randint(0, resolution_y)
 
-        if(random.randint(0,1)==0):
-            if(random.randint(0,1)==0):
-                self.x = 0
-                self.direction = random.randint(210, 330)
-                self.rotr = math.radians(self.direction)
+                else:
+                    if(random.randint(0,1)==0):
+                        self.y = 0
+                        self.direction = random.randint(120, 240)
+                        self.rotr = math.radians(self.direction)
+                    else:
+                        self.y = resolution_y
+                        self.direction = random.randint(310, 420)
+                        self.rotr = math.radians(self.direction)
+
+                    self.x = random.randint(0, resolution_x)
             else:
-                self.x = resolution_x
-                self.direction = random.randint(30, 150)
+                self.x = x
+                self.y = y
+                self.direction = direction
                 self.rotr = math.radians(self.direction)
-            
-            self.y = random.randint(0, resolution_y)
+                
+            if self.direction>360:
+                self.direction-=360
+                self.rotr = math.radians(self.direction)
 
+            if self.direction<0:
+                self.direction+=360
+                self.rotr = math.radians(self.direction)
+
+            self.ysp = math.cos(self.rotr)
+            self.xsp = math.sin(self.rotr)
+            self.sizeX = 60
+            self.sizeY = 60
+            asteroid = pygame.Surface( (self.sizeX,self.sizeY), pygame.SRCALPHA, 32 ).convert_alpha()
+            #asteroid.fill( ( 0, 0, 255 ) )
+            asteroid.blit(pygame.transform.scale(asteroid_img, (self.sizeX,self.sizeY)),(0,0))
+            self.image = asteroid
         else:
-            if(random.randint(0,1)==0):
-                self.y = 0
-                self.direction = random.randint(120, 240)
-                self.rotr = math.radians(self.direction)
-            else:
-                self.y = resolution_y
-                self.direction = random.randint(310, 420)
-                self.rotr = math.radians(self.direction)
-
-            self.x = random.randint(0, resolution_x)
-            
-        if self.direction>360:
-            self.direction-=360
+            self.health = 100
+            self.speed = 200
+            self.x = resolution_x
+            self.y = resolution_y/2
+            self.direction = 0
             self.rotr = math.radians(self.direction)
-
-        if self.direction<0:
-            self.direction+=360
-            self.rotr = math.radians(self.direction)
-
-        self.ysp = math.cos(self.rotr)
-        self.xsp = math.sin(self.rotr)
-        self.sizeX = 60
-        self.sizeY = 60
-        asteroid = pygame.Surface( (self.sizeX,self.sizeY), pygame.SRCALPHA, 32 ).convert_alpha()
-        #asteroid.fill( ( 0, 0, 255 ) )
-        asteroid.blit(pygame.transform.scale(asteroid_img, (self.sizeX,self.sizeY)),(0,0))
-        self.image = asteroid
+            self.ysp = math.cos(self.rotr)
+            self.xsp = math.sin(self.rotr)
+            self.sizeX = 400
+            self.sizeY = 400
+            asteroid = pygame.Surface( (self.sizeX,self.sizeY), pygame.SRCALPHA, 32 ).convert_alpha()
+            #asteroid.fill( ( 0, 0, 255 ) )
+            asteroid.blit(pygame.transform.scale(asteroid_img, (self.sizeX,self.sizeY)),(0,0))
+            self.image = asteroid
 
     def move(self,delta):
         self.x -= float(self.xsp*delta*self.speed)
@@ -235,14 +258,15 @@ class Asteroid:
         screen.blit( new_image, (new_rect[0]-(self.sizeX/2),new_rect[1]-(self.sizeY/2)) )
 
 class Text:
-    def __init__(self,text,x,y,size):
+    def __init__(self,text,x,y,size,color = (255,255,255)):
         self.x = x
         self.y = y
         self.text = text
         self.my_font = pygame.font.SysFont('Comic Sans MS', size)
+        self.color=color
 
     def draw( self, screen ):
-        text_surface = self.my_font.render(self.text, False, (255, 255, 255))
+        text_surface = self.my_font.render(self.text, False, (self.color))
         
         screen.blit( text_surface, (self.x,self.y) )
 
@@ -253,9 +277,12 @@ class Game:
     run         = True
     background  = None   
     ship = None 
+    boss = None
     startLabel = None
     timeLabel = None
     scoreLabel = None
+    endingLabel = None
+    bossLabel = None
     w = False
     s = False
     a = False
@@ -275,6 +302,8 @@ class Game:
     superCharge = 0
     launchSuper = False
     lives = 3
+    currentLevel = 1
+    scoreToLevel = 30000
 
     def __init__( self, size, fullscreen ):
         """
@@ -300,7 +329,8 @@ class Game:
 
     def game_start(self,size):
         self.ship = Ship(size[0],size[1])
-        self.startLabel = Text('Aperte Enter para iniciar',resolution_x/2,resolution_y/2,30)
+        self.startLabel  = Text('Aperte P para reiniciar',resolution_x/2-100,resolution_y/2-100,30)
+        self.endingLabel = Text('Parabens voce ganhou',resolution_x/2-100,resolution_y/2-100,30)
         self.timeLabel = Text('teste1',0,0,30)
         self.scoreLabel = Text('teste2',800,0,30)
         self.livesLabel = Text('3 vidas',1300,0,30)
@@ -310,7 +340,15 @@ class Game:
         self.score=0
         self.charge=0
         self.superCharge=0
+        self.currentLevel = 1
         self.lives = 3
+
+        for asteroid in self.asteroids[:]: 
+            self.asteroids.remove(asteroid)
+
+        for bullet in self.bullets[:]: 
+            self.bullets.remove(bullet)
+
         self.running=True
 
 
@@ -322,7 +360,10 @@ class Game:
             t = event.type
             if t in ( KEYDOWN, KEYUP ):
                 k = event.key
-        
+
+            if t in ( MOUSEBUTTONDOWN, MOUSEBUTTONUP ):
+                k = event.button
+
             if t == QUIT:
                 self.run = False
 
@@ -338,7 +379,6 @@ class Game:
                 elif k == K_d:
                     self.d = True
                 elif k == K_p:
-                    if(not self.running):
                         self.running = True
                         self.game_start(self.size)
                 elif k == K_SPACE:
@@ -362,11 +402,19 @@ class Game:
                 elif k == K_SPACE:
                     self.shoot = False
                     self.launchShot = True
+                elif k == K_LSHIFT:
+                    self.launchSuper = True
+
+                
             elif t == MOUSEBUTTONDOWN:
-                self.shoot = True
+                if k == 1:
+                    self.shoot = True
+                elif k == 3:
+                    self.launchSuper = True
             elif t == MOUSEBUTTONUP:
-                self.shoot = False
-                self.launchShot = True
+                if k == 1:
+                    self.shoot = False
+                    self.launchShot = True
 
 
 
@@ -390,32 +438,41 @@ class Game:
             self.charge +=delta
 
         if self.launchShot:
+            self.launchShot = False
             self.ship.shoot()
-            if(len(self.bullets)<5):
-                bullet = Projectile(self.ship.direction,self.ship.x,self.ship.y,self.charge)
-                self.bullets.append(bullet)
-                print('shoot',self.charge)
+
+            bulletAmount = 0
+            for bullet in self.bullets[:]:
+                if not bullet.superNova:
+                    bulletAmount+=1
+
+            if(bulletAmount<5):
+                if(self.currentLevel==1):
+                    bullet = Projectile(self.ship.direction,self.ship.x,self.ship.y,self.charge)
+                    self.bullets.append(bullet)
+                elif(self.currentLevel==2):
+                    bullet = Projectile(self.ship.direction,self.ship.x,self.ship.y,self.charge)
+                    self.bullets.append(bullet)
+                    bullet = Projectile(self.ship.direction+25,self.ship.x,self.ship.y,self.charge,superNova=True)
+                    self.bullets.append(bullet)
+                    bullet = Projectile(self.ship.direction-25,self.ship.x,self.ship.y,self.charge,superNova=True)
+                    self.bullets.append(bullet)
+                #print('shoot',self.charge)
                 self.charge = 0
         
         if self.launchSuper:
+            print('super tentativa')
+
+        if self.launchSuper and self.superCharge>=self.superMaxCharge:
             self.ship.shoot()
-            bullet1 = Projectile(0,self.ship.x,self.ship.y,1,True)
-            bullet2 = Projectile(45,self.ship.x,self.ship.y,1,True)
-            bullet3 = Projectile(90,self.ship.x,self.ship.y,1,True)
-            bullet4 = Projectile(135,self.ship.x,self.ship.y,1,True)
-            bullet5 = Projectile(180,self.ship.x,self.ship.y,1,True)
-            bullet6 = Projectile(225,self.ship.x,self.ship.y,1,True)
-            bullet7 = Projectile(270,self.ship.x,self.ship.y,1,True)
-            bullet8 = Projectile(315,self.ship.x,self.ship.y,1,True)
-            self.bullets.append(bullet1)
-            self.bullets.append(bullet2)
-            self.bullets.append(bullet3)
-            self.bullets.append(bullet4)
-            self.bullets.append(bullet5)
-            self.bullets.append(bullet6)
-            self.bullets.append(bullet7)
-            self.bullets.append(bullet8)
-            self.launchSuper = 0
+
+            degrees = [0,45,90,135,180,225,270,315]
+
+            for degree in degrees:
+                bullet = Projectile(degree,self.ship.x,self.ship.y,1,True)
+                self.bullets.append(bullet)
+
+            self.launchSuper = False
             self.superCharge = 0
             print('super')
     
@@ -432,7 +489,10 @@ class Game:
             i+=1
             asteroid.move(delta)
             if(asteroid.x>resolution_x or asteroid.x<0 or asteroid.y>resolution_y or asteroid.y<0):
-                self.asteroids.remove(asteroid)
+                if(asteroid.boss):
+                    asteroid.speed *=-1
+                else:
+                    self.asteroids.remove(asteroid)
         
         bulletsRemove = []
         asteroidsHit = []
@@ -448,8 +508,9 @@ class Game:
                         if(not bullet.superNova):
                             asteroidsHitNormal.append(asteroid)
                         asteroidsHit.append(asteroid)
-                        
-                        asteroidsRemove.append(asteroid)
+                        asteroid.health-=1
+                        if asteroid.health<=0:
+                            asteroidsRemove.append(asteroid)
         
         bulletsRemove = list(dict.fromkeys(bulletsRemove))
         asteroidsRemove = list(dict.fromkeys(asteroidsRemove))
@@ -457,29 +518,53 @@ class Game:
         asteroidsHitNormal = list(dict.fromkeys(asteroidsHitNormal))
 
         for asteroid in asteroidsHitNormal[:]:
-            self.superCharge+=1
+            if(self.superCharge<self.superMaxCharge):
+                self.superCharge+=1
             self.score+=50
 
         for asteroid in asteroidsHit[:]:
             self.score+=50
-
-        if self.superCharge>=self.superMaxCharge:
-            self.superCharge = 0
-            self.launchSuper = True
 
         for bullet in bulletsRemove[:]: 
             self.bullets.remove(bullet)
         
         for asteroid in asteroidsRemove[:]: 
             self.asteroids.remove(asteroid)
+            if asteroid == self.boss:
+                self.currentLevel=3
+                for asteroid in self.asteroids[:]: 
+                    self.asteroids.remove(asteroid)
+
+                for bullet in self.bullets[:]: 
+                    self.bullets.remove(bullet)
+            
+            
 
         for asteroid in self.asteroids[:]:
             #print(self.ship.x,self.ship.y,self.ship.sizeX,self.ship.sizeY,asteroid.x,asteroid.y,asteroid.sizeX,asteroid.sizeY)
             if(self.collide(self.ship.x,self.ship.y,self.ship.sizeX,self.ship.sizeY,asteroid.x,asteroid.y,asteroid.sizeX,asteroid.sizeY)):
-                self.asteroids.remove(asteroid)
+                asteroid.health-=1
+                if asteroid.health<=0:
+                    self.asteroids.remove(asteroid)
                 self.lives -= 1
                 if(self.lives<=0):
                     self.running = False
+        
+        if self.scoreToLevel <= self.score and self.currentLevel == 1:
+            self.currentLevel = 2
+            self.lives +=3
+            self.ship.x = 0
+            self.ship.y = resolution_y/2
+
+            for asteroid in self.asteroids[:]: 
+                self.asteroids.remove(asteroid)
+
+            for bullet in self.bullets[:]: 
+                self.bullets.remove(bullet)
+            
+            asteroid = Asteroid(boss=True)
+            self.boss = asteroid
+            self.asteroids.append(asteroid)
         
         if not self.running:
             for asteroid in self.asteroids[:]: 
@@ -487,8 +572,6 @@ class Game:
 
             for bullet in self.bullets[:]: 
                 self.bullets.remove(bullet)
-
-
 
 
     def actors_draw( self ):
@@ -504,20 +587,32 @@ class Game:
         self.timeLabel = Text('Tempo:'+str(self.duration),0,0,30)
         self.scoreLabel = Text('score:'+str(self.score),800,0,30)
         self.livesLabel = Text(str(self.lives)+' vidas',1300,0,30)
-        self.superLabel = Text(str(self.superCharge)+'/'+str(self.superMaxCharge),800,800,30)
-        self.startLabel = Text('Aperte P para reiniciar',resolution_x/2-100,resolution_y/2-100,30)
+
+        if(self.superCharge>=self.superMaxCharge):
+            color = (255,255,0)
+        else:
+            color = (255,255,255)
+        self.superLabel = Text(str(self.superCharge)+'/'+str(self.superMaxCharge),800,800,30,color = color)
+        
 
         self.scoreLabel.draw(self.screen)
         self.timeLabel.draw(self.screen)
         self.livesLabel.draw(self.screen)
         self.superLabel.draw(self.screen)
 
+        if self.currentLevel == 2:
+            self.bossLabel = Text(str(self.boss.health)+'/100',1300,800,30)
+            self.bossLabel.draw(self.screen)
+
+        if self.currentLevel == 3:
+            self.endingLabel.draw(self.screen)
+
         if not self.running:
             self.startLabel.draw(self.screen)
     # actors_draw()
 
     def spawn_asteroids( self,dt,delta ):
-        if self.timer <=0:
+        if self.timer <=0 and self.currentLevel==1:
             asteroid = Asteroid()
             self.asteroids.append(asteroid)
             #print('asteroid')
@@ -534,6 +629,17 @@ class Game:
                 self.timer =50
             else:
                 self.timer =20
+        elif self.timer <=0 and self.currentLevel==2:
+
+            degrees =[90,45,135]
+
+            for degree in degrees:
+                asteroid = Asteroid(x=self.boss.x-150,y=self.boss.y+100,direction=degree)
+                self.asteroids.append(asteroid)
+
+            print('asteroid')
+
+            self.timer =100
 
     
     def collide(self,x1,y1,xsize1,ysize1,x2,y2,xsize2,ysize2):
@@ -642,7 +748,7 @@ class Game:
             # ao fim do desenho temos que trocar o front buffer e o back buffer
             pygame.display.flip()
 
-            self.launchShot = False
+            
 
             #print(self.timer)
 
