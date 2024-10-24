@@ -1,5 +1,3 @@
-# nivel dois que é um marçal gigante na direita da tela
-
 import os, sys
 import getopt
 
@@ -637,7 +635,7 @@ class Game:
                 asteroid = Asteroid(x=self.boss.x-150,y=self.boss.y+100,direction=degree)
                 self.asteroids.append(asteroid)
 
-            print('asteroid')
+            #print('asteroid')
 
             self.timer =100
 
