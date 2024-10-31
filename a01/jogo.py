@@ -6,6 +6,9 @@ from pygame.locals import *
 import math
 import random
 
+pygame.mixer.init()
+
+
 images_dir = os.path.join( "..", "imagens" )
 
 resolution_x = 1600
@@ -20,6 +23,9 @@ super_nave_img = pygame.image.load('asteroids_fake/imagens/superNave.png')
 bala_img = pygame.image.load('asteroids_fake/imagens/bala.png')
 super_bala_img = pygame.image.load('asteroids_fake/imagens/superBala.png')
 asteroid_img = pygame.image.load('asteroids_fake/imagens/asteroid.png')
+
+nao_datena_audio = pygame.mixer.Sound("asteroids_fake/audio/nao_datena.mp3")
+nao_eh_homem = pygame.mixer.Sound("asteroids_fake/audio/nao_eh_homem.mp3")
 
 class Ship:
     
@@ -459,7 +465,9 @@ class Game:
                 self.charge = 0
         
         if self.launchSuper:
-            print('super tentativa')
+            #print('super tentativa')
+            pass
+            
 
         if self.launchSuper and self.superCharge>=self.superMaxCharge:
             self.ship.shoot()
@@ -470,9 +478,12 @@ class Game:
                 bullet = Projectile(degree,self.ship.x,self.ship.y,1,True)
                 self.bullets.append(bullet)
 
+            nao_datena_audio.play()
+            nao_datena_audio.set_volume(1)
+
             self.launchSuper = False
             self.superCharge = 0
-            print('super')
+            #print('super')
     
         i=1
         for bullet in self.bullets[:]:
@@ -482,6 +493,11 @@ class Game:
             if(bullet.x>resolution_x or bullet.x<0 or bullet.y>resolution_y or bullet.y<0):
                 self.bullets.remove(bullet)  
         
+        bulletsRemove = []
+        asteroidsHit = []
+        asteroidsHitNormal = []
+        asteroidsRemove = []
+
         for asteroid in self.asteroids[:]:
             #print('asteroid',i)
             i+=1
@@ -492,10 +508,7 @@ class Game:
                 else:
                     self.asteroids.remove(asteroid)
         
-        bulletsRemove = []
-        asteroidsHit = []
-        asteroidsHitNormal = []
-        asteroidsRemove = []
+        
 
         for bullet in self.bullets[:]:    
             for asteroid in self.asteroids[:]:
@@ -514,6 +527,8 @@ class Game:
         asteroidsRemove = list(dict.fromkeys(asteroidsRemove))
         asteroidsHit = list(dict.fromkeys(asteroidsHit))
         asteroidsHitNormal = list(dict.fromkeys(asteroidsHitNormal))
+
+        #print(asteroidsRemove)
 
         for asteroid in asteroidsHitNormal[:]:
             if(self.superCharge<self.superMaxCharge):
@@ -535,6 +550,7 @@ class Game:
 
                 for bullet in self.bullets[:]: 
                     self.bullets.remove(bullet)
+                break
             
             
 
@@ -559,17 +575,19 @@ class Game:
 
             for bullet in self.bullets[:]: 
                 self.bullets.remove(bullet)
+
+            nao_eh_homem.play()
             
             asteroid = Asteroid(boss=True)
             self.boss = asteroid
             self.asteroids.append(asteroid)
         
         if not self.running:
-            for asteroid in self.asteroids[:]: 
-                self.asteroids.remove(asteroid)
+            self.asteroids=[] 
 
-            for bullet in self.bullets[:]: 
-                self.bullets.remove(bullet)
+            self.bullets=[] 
+
+        self.launchSuper = False
 
 
     def actors_draw( self ):
@@ -720,7 +738,9 @@ class Game:
         clock         = pygame.time.Clock()
         dt            = 16
 
-        
+        pygame.mixer.music.load("../audio/chiptune.mp3")
+        pygame.mixer.music.play(-1)
+        pygame.mixer.music.set_volume(0.2)
         # assim iniciamos o loop principal do programa
         while self.run:
             delta = clock.tick( 1000 / dt ) / 1000
@@ -739,7 +759,8 @@ class Game:
             
             
             if self.running:
-                self.duration += delta * 1000
+                if self.currentLevel != 3:
+                    self.duration += delta * 1000
 
                 self.timer -= delta * 1000
 
