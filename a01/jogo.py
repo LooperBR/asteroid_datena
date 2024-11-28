@@ -23,6 +23,7 @@ super_nave_img = pygame.image.load('asteroids_fake/imagens/superNave.png')
 bala_img = pygame.image.load('asteroids_fake/imagens/bala.png')
 super_bala_img = pygame.image.load('asteroids_fake/imagens/superBala.png')
 asteroid_img = pygame.image.load('asteroids_fake/imagens/asteroid.png')
+tutorial_img = pygame.image.load('asteroids_fake/imagens/tutorial.png')
 
 nao_datena_audio = pygame.mixer.Sound("asteroids_fake/audio/nao_datena.mp3")
 nao_eh_homem = pygame.mixer.Sound("asteroids_fake/audio/nao_eh_homem.mp3")
@@ -178,6 +179,17 @@ class Projectile:
 
         screen.blit( new_image, (new_rect[0]-(self.sizeX/2),new_rect[1]-(self.sizeY/2)) )
 
+class TutorialImage:
+    def __init__(self):
+        asteroid = pygame.Surface( (700,700), pygame.SRCALPHA, 32 ).convert_alpha()
+
+        asteroid.blit(pygame.transform.scale(tutorial_img, (700,700)),(0,0))
+        self.image = asteroid
+    
+    def draw( self, screen ):
+        screen.blit( self.image, (0,0) )
+        
+
 class Asteroid:
     def __init__(self,x=-1,y=-1,direction=0,boss=False):
         self.boss=boss
@@ -287,6 +299,7 @@ class Game:
     scoreLabel = None
     endingLabel = None
     bossLabel = None
+    tutorialImg = None
     w = False
     s = False
     a = False
@@ -333,8 +346,9 @@ class Game:
 
     def game_start(self,size):
         self.ship = Ship(size[0],size[1])
-        self.startLabel  = Text('Aperte P para reiniciar',resolution_x/2-100,resolution_y/2-100,30)
+        self.startLabel  = Text('Aperte P para iniciar',resolution_x/2-100,resolution_y/2-100,30)
         self.endingLabel = Text('Parabens voce ganhou',resolution_x/2-100,resolution_y/2-100,30)
+        self.tutorialImg = TutorialImage()
         self.timeLabel = Text('teste1',0,0,30)
         self.scoreLabel = Text('teste2',800,0,30)
         self.livesLabel = Text('3 vidas',1300,0,30)
@@ -353,7 +367,7 @@ class Game:
         for bullet in self.bullets[:]: 
             self.bullets.remove(bullet)
 
-        self.running=True
+        #self.running=True
 
 
     def handle_events( self ):
@@ -624,6 +638,7 @@ class Game:
             self.endingLabel.draw(self.screen)
 
         if not self.running:
+            self.tutorialImg.draw(self.screen)
             self.startLabel.draw(self.screen)
     # actors_draw()
 
