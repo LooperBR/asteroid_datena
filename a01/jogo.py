@@ -18,15 +18,15 @@ black = (0,0,0)
 white = (255,255,255)
 red = (255,0,0)
 
-nave_img = pygame.image.load('asteroids_fake/imagens/nave.png')
-super_nave_img = pygame.image.load('asteroids_fake/imagens/superNave.png')
-bala_img = pygame.image.load('asteroids_fake/imagens/bala.png')
-super_bala_img = pygame.image.load('asteroids_fake/imagens/superBala.png')
-asteroid_img = pygame.image.load('asteroids_fake/imagens/asteroid.png')
-tutorial_img = pygame.image.load('asteroids_fake/imagens/tutorial.png')
+nave_img = pygame.image.load('imagens/nave.png')
+super_nave_img = pygame.image.load('imagens/superNave.png')
+bala_img = pygame.image.load('imagens/bala.png')
+super_bala_img = pygame.image.load('imagens/superBala.png')
+asteroid_img = pygame.image.load('imagens/asteroid.png')
+tutorial_img = pygame.image.load('imagens/tutorial.png')
 
-nao_datena_audio = pygame.mixer.Sound("asteroids_fake/audio/nao_datena.mp3")
-nao_eh_homem = pygame.mixer.Sound("asteroids_fake/audio/nao_eh_homem.mp3")
+nao_datena_audio = pygame.mixer.Sound("audio/nao_datena.mp3")
+nao_eh_homem = pygame.mixer.Sound("audio/nao_eh_homem.mp3")
 
 class Ship:
     
@@ -599,13 +599,18 @@ class Game:
         if not self.running:
             self.asteroids=[] 
 
-            self.bullets=[] 
+            #self.bullets=[] 
 
         self.launchSuper = False
 
 
     def actors_draw( self ):
         self.background.draw( self.screen )
+
+        if not self.running:
+            self.tutorialImg.draw(self.screen)
+            self.startLabel.draw(self.screen)
+
         for bullet in self.bullets:
             bullet.draw(self.screen)
         
@@ -636,10 +641,6 @@ class Game:
 
         if self.currentLevel == 3:
             self.endingLabel.draw(self.screen)
-
-        if not self.running:
-            self.tutorialImg.draw(self.screen)
-            self.startLabel.draw(self.screen)
     # actors_draw()
 
     def spawn_asteroids( self,dt,delta ):
