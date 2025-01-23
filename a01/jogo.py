@@ -181,9 +181,9 @@ class Projectile:
 
 class TutorialImage:
     def __init__(self):
-        asteroid = pygame.Surface( (700,700), pygame.SRCALPHA, 32 ).convert_alpha()
+        asteroid = pygame.Surface( (1200,700), pygame.SRCALPHA, 32 ).convert_alpha()
 
-        asteroid.blit(pygame.transform.scale(tutorial_img, (700,700)),(0,0))
+        asteroid.blit(pygame.transform.scale(tutorial_img, (1200,700)),(0,0))
         self.image = asteroid
     
     def draw( self, screen ):
